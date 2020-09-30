@@ -56,6 +56,12 @@ if cnn and expDim == '2d':
 
 ########################### load up dataset ###########################
 
+# print("train X")
+# print(train_X.shape)
+# print("train Y")
+# print(train_Y.shape)
+# print()
+# print()
 train_dataset = SharkBehaviorDataset(train_X, labels=train_Y, train=True)
 val_dataset   = SharkBehaviorDataset(val_X, labels=val_Y, train=True)
 
@@ -72,95 +78,7 @@ criterion = nn.CrossEntropyLoss()
 
 ########################### train ###########################
 
-train(model, train_loader, {})
-
-'''
-mean_train_losses = []
-mean_val_losses = []
-
-mean_train_acc = []
-mean_val_acc = []
-minLoss = 99999
-maxValacc = -99999
-for epoch in range(500):
-    print('EPOCH: ',epoch+1)
-    train_acc = []
-    val_acc = []
-    
-    running_loss = 0.0
-    
-    model.train()
-    count = 0
-    for images, labels in train_loader:
-        labels = labels.squeeze()
-        images = Variable(images.cuda())
-        labels = Variable(labels.cuda())
-        
-        outputs = model(images)
-        
-        optimizer.zero_grad()
-        loss = criterion(outputs, labels)
-        
-        train_acc.append(accuracy(outputs, labels))
-        
-        loss.backward()
-        optimizer.step()        
-        
-        running_loss += loss.item()
-        count +=1
-        
-    sched.step()
-    print('Training loss:.......', running_loss/count)
-    mean_train_losses.append(running_loss/count)
-        
-    model.eval()
-    count = 0
-    val_running_loss = 0.0
-    for images, labels in val_loader:
-        labels = labels.squeeze()
-        images = Variable(images.cuda())
-        labels = Variable(labels.cuda())
-        
-        outputs = model(images)
-        accuracy(outputs, labels)
-        
-        
-        loss = criterion(outputs, labels)
-
-        val_acc.append(accuracy(outputs, labels))
-        val_running_loss += loss.item()
-        count +=1
-
-    mean_val_loss = val_running_loss/count
-    print('Validation loss:.....', mean_val_loss)
-    
-    print('Training accuracy:...', np.mean(train_acc))
-    print('Validation accuracy..', np.mean(val_acc))
-    
-    mean_val_losses.append(mean_val_loss)
-    
-    mean_train_acc.append(np.mean(train_acc))
-    
-    val_acc_ = np.mean(val_acc)
-    mean_val_acc.append(val_acc_)
-    
-    if mean_val_loss < minLoss:
-        torch.save(model.state_dict(), './'+folder_+'/_loss.pth' )
-        print(f'NEW BEST LOSS_: {mean_val_loss} ........old best:{minLoss}')
-        minLoss = mean_val_loss
-        print('')
-        
-    if val_acc_ > maxValacc:
-        torch.save(model.state_dict(), './'+folder_+'/_acc.pth' )
-        print(f'NEW BEST ACC_: {val_acc_} ........old best:{maxValacc}')
-        maxValacc = val_acc_
-        
-    if epoch%500 == 0 :
-        torch.save(model.state_dict(), './'+folder_+'/save_'+str(epoch)+'.pth' )
-        print(f'DIV 200: Val_acc: {val_acc_} ..Val_loss:{mean_val_loss}')
-        
-    torch.save(model.state_dict(), './'+folder_+'/_last.pth' )
-'''
+train(model, train_loader, val_loader, {}, sched, folder_)
 
 ########################### disp loss/acc ###########################
 

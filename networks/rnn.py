@@ -17,8 +17,9 @@ class SharkGRU(nn.Module):
                     input_size=self.new_dim,
                     hidden_size=self.hidden_size,
                     num_layers=self.num_layers,
-                    bidirectional = True,
-                    dropout=0.5)
+                    batch_first=True,
+                    dropout=.5,
+                    bidirectional=True)
         
         self.fc1 = nn.Linear(hidden_size*2, self.fc_dim)
         self.bn1 = nn.BatchNorm1d(self.fc_dim)
@@ -75,8 +76,9 @@ class SharkLSTM(nn.Module):
                     input_size=self.input_size,
                     hidden_size=self.hidden_size,
                     num_layers=self.num_layers,
-                    bidirectional = True,
-                    dropout = .5)
+                    batch_first=True,
+                    dropout=.5,
+                    bidirectional=True)
         
         self.fc1 = nn.Linear(hidden_size*2, self.fc_dim)
         self.bn1 = nn.BatchNorm1d(self.fc_dim)

@@ -79,13 +79,28 @@ if modelType == 'cnn':
             
 elif modelType == 'rnn':
     hidden_size = 128
-    dat_size = 50
+    if expDim == '1d':
+        dat_size = 1
+    else:
+        dat_size = 6
+        
     out_size = 4
-    
+    num_layers = 2
+    fc_dim = 512
+
     if archType == 'LSTM':
-        model = SharkLSTM(dat_size, hidden_size, out_size)
+        model = SharkAttentionLSTM(dat_size,
+                          hidden_size, 
+                          out_size, 
+                          num_layers=num_layers,
+                          fc_dim=fc_dim)
+
     elif archType == 'GRU':
-        model = SharkGRU(dat_size, hidden_size, out_size)
+        model = SharkGRU(dat_size, 
+                         hidden_size, 
+                         out_size, 
+                         num_layers=num_layers,
+                         fc_dim=fc_dim)
         
 elif modelType == 'rcnn':
     
@@ -97,6 +112,7 @@ elif modelType == 'rcnn':
 
 model.cuda()
 
+print(folder_)
 state_dict = torch.load('./'+ folder_ + '/_acc.pth')
 # state_dict = torch.load('exp/'+ folder_ +'/_loss.pth')
 # state_dict = torch.load('exp/'+ folder_ +'/_last.pth')
@@ -106,34 +122,27 @@ model.eval()
 
 ########################### inference ###########################
 
-preds = []
 ys = []
+preds = []
 probs = np.empty((test_X.shape[0],4))
-correct = 0
 
 with torch.no_grad():
     model.eval
+    
     count = 0
-#     preds = []
-#     ys = []
-    val_running_loss = 0.0
-    for images, labels in test_loader:
-#         tots +=1
+    for sequences, labels in test_loader:
         labels = labels.squeeze()
-        images = Variable(images.cuda())
+        sequences = Variable(sequences.cuda())
         labels = Variable(labels.cuda())
         
-        outputs = model(images)
+        outputs = model(sequences)
         prob = nn.Softmax()(outputs).cpu().numpy()
         
         _, pred = torch.max(outputs,1)
         ys = np.concatenate([ys, labels.cpu().numpy()])
         preds = np.concatenate([preds, pred.cpu().numpy()])
         
-        #probs.append(prob.tolist())
-        #print(prob.shape)
         probs = np.vstack([probs, prob])
-
         
 ########################### acc ###########################
 

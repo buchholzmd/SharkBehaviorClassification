@@ -1,6 +1,7 @@
 import os
 import h5py
 import torch
+import numpy as np
 import torch.nn as nn
 from torch.autograd import Variable
 
@@ -16,7 +17,9 @@ def accuracy(out, labels):
     acc = 100*correct/len(labels)
     return acc
 
-def train(model, train_loader, parameters):
+def train(model, train_loader, val_loader, parameters, sched, path):
+    folder_ = path
+    
     model.train()
     
     criterion = nn.CrossEntropyLoss()
@@ -38,13 +41,14 @@ def train(model, train_loader, parameters):
         running_loss = 0.0
 
         model.train()
+        
         count = 0
-        for images, labels in train_loader:
+        for sequences, labels in train_loader:
             labels = labels.squeeze()
-            images = Variable(images.cuda())
+            sequences = Variable(sequences.cuda())
             labels = Variable(labels.cuda())
-
-            outputs = model(images)
+            
+            outputs = model(sequences)
 
             optimizer.zero_grad()
             loss = criterion(outputs, labels)
@@ -56,7 +60,7 @@ def train(model, train_loader, parameters):
 
             running_loss += loss.item()
             count +=1
-
+        
         sched.step()
         print('Training loss:.......', running_loss/count)
         mean_train_losses.append(running_loss/count)
@@ -78,7 +82,7 @@ def train(model, train_loader, parameters):
             val_acc.append(accuracy(outputs, labels))
             val_running_loss += loss.item()
             count +=1
-
+        
         mean_val_loss = val_running_loss/count
         print('Validation loss:.....', mean_val_loss)
 
@@ -106,6 +110,8 @@ def train(model, train_loader, parameters):
         if epoch%500 == 0 :
             torch.save(model.state_dict(), './'+folder_+'/save_'+str(epoch)+'.pth' )
             print(f'DIV 200: Val_acc: {val_acc_} ..Val_loss:{mean_val_loss}')
+            
+    torch.save(model.state_dict(), './'+folder_+'/_last.pth')
 
 def get_exp_paths(config):
     expDim    = config['DATA_DIM']
@@ -114,14 +120,14 @@ def get_exp_paths(config):
     testSplit = config['TEST_SPLIT']
     modelType = config['MODEL_TYPE']
 
-    folder_ = os.path.join('./models', modelType, expDim, archType)
+    folder_ = os.path.join('./models', 'Attention' + modelType, expDim, archType)
 
     results_folder = os.path.join('./results', testSplit)
 
     if wavelet:
         results_file = 'wavelet_' + archType + '_' + expDim + '_' + testSplit + '.txt'
     else:
-        results_file = archType + '_' + expDim + '_' + testSplit + '.txt'
+        results_file = 'Attention' + archType + '_' + expDim + '_' + testSplit + '.txt'
 
     if not os.path.exists(folder_):
         os.makedirs(folder_)
@@ -204,11 +210,13 @@ def get_model(config):
 
     elif modelType == 'rnn':
         hidden_size = 128
-        dat_size = 50
+        if expDim == '1d':
+            dat_size = 1
+        else:
+            dat_size = 6
+            
         out_size = 4
-
         num_layers = 2
-        
         fc_dim = 512
 
         if archType == 'LSTM':
