@@ -1,11 +1,13 @@
 MODEL_TYPE: 'rnn' # 'rnn', 'cnn', 'rcnn'
-
 DATA_DIM: '1d' # '1d', '2d'
+WAVELET: False
+NUM_CLASSES: 4
 
-ARCH_TYPE: 'LSTM' # 'LSTM', 'GRU', 'VGG1', 'VGG2', 'Inception', 'RCNN'
+ARCH_TYPE: 'GRU' # 'LSTM', 'GRU', 'VGG1', 'VGG2', 'Inception', 'RCNN'
+HIDDEN_DIM: 512
+FC_DIM: 1024
+NUM_LAYERS: 2
+ATTENTION: ''
 
 TEST_SPLIT: 'orig' # 'orig', '7000', '12000'
-
-WAVELET: False
-
 BATCH_SIZE: 256

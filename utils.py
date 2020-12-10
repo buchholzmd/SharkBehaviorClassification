@@ -17,14 +17,12 @@ def accuracy(out, labels):
     acc = 100*correct/len(labels)
     return acc
 
-def train(model, train_loader, val_loader, parameters, sched, path):
+def train(model, train_loader, val_loader, parameters, optimizer, sched, path, rnn=False):
     folder_ = path
     
     model.train()
     
     criterion = nn.CrossEntropyLoss()
-    
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=.99, nesterov=True)
     
     mean_train_losses = []
     mean_val_losses = []
@@ -56,12 +54,18 @@ def train(model, train_loader, val_loader, parameters, sched, path):
             train_acc.append(accuracy(outputs, labels))
 
             loss.backward()
+            
+            if rnn:
+                torch.nn.utils.clip_grad_norm_(model.parameters(), 5)
+                
             optimizer.step()        
 
             running_loss += loss.item()
             count +=1
         
-        sched.step()
+        if epoch % 25 == 0:
+            sched.step()
+            
         print('Training loss:.......', running_loss/count)
         mean_train_losses.append(running_loss/count)
 
@@ -119,15 +123,16 @@ def get_exp_paths(config):
     archType  = config['ARCH_TYPE']
     testSplit = config['TEST_SPLIT']
     modelType = config['MODEL_TYPE']
+    attention = config['ATTENTION']
 
-    folder_ = os.path.join('./models', 'Attention' + modelType, expDim, archType)
+    folder_ = os.path.join('./models', attention + modelType, expDim, archType)
 
     results_folder = os.path.join('./results', testSplit)
 
     if wavelet:
         results_file = 'wavelet_' + archType + '_' + expDim + '_' + testSplit + '.txt'
     else:
-        results_file = 'Attention' + archType + '_' + expDim + '_' + testSplit + '.txt'
+        results_file = attention + archType + '_' + expDim + '_' + testSplit + '.txt'
 
     if not os.path.exists(folder_):
         os.makedirs(folder_)
@@ -164,20 +169,14 @@ def load_data(infile, dataset, testSplit=''):
         Returns:
           f["image"][()]: numpy.array, image data as numpy array
     '''
-    X_path = infile + '/' + testSplit + '/' + dataset + '_data.hdf5'
-    Y_path = infile + '/' + testSplit + '/' + dataset + '_gt.hdf5'
+    path = infile + '/' + dataset + '/' + testSplit + '/' + 'data.hdf5'
     
     print("---------------------------------------")
     print("Loading data")
     print("---------------------------------------\n")
-    with h5py.File(X_path, "r") as f:
-        X = f["shark_data"][()]
-        
-    print("---------------------------------------")
-    print("Loading data")
-    print("---------------------------------------\n")
-    with h5py.File(Y_path, "r") as f:
-        Y = f["shark_data"][()]
+    with h5py.File(path, "r") as f:
+        X = f["features"][()]
+        Y = f["gts"][()]
         
     return X, Y
 
@@ -204,23 +203,24 @@ def get_model(config):
                 model = Sharkception2d(1)
 
         model.cuda()
-        optimizer = torch.optim.Adam(model.parameters(), lr=0.0001, weight_decay=.0)#, momentum=.9, nesterov=True)
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.1, weight_decay=1e-7)#, momentum=.9, nesterov=True)
         # optimizer = torch.optim.SGD(model.parameters(), lr=0.0001, momentum=.99, nesterov=True)
-        sched = torch.optim.lr_scheduler.MultiStepLR(optimizer, [10000], gamma=0.1)
+#         sched = torch.optim.lr_scheduler.MultiStepLR(optimizer, [10000], gamma=0.1)
+        sched = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.65)
 
     elif modelType == 'rnn':
-        hidden_size = 128
+        hidden_size = config['HIDDEN_DIM']
         if expDim == '1d':
             dat_size = 1
         else:
             dat_size = 6
             
-        out_size = 4
-        num_layers = 2
-        fc_dim = 512
+        out_size = config['NUM_CLASSES']
+        num_layers = config['NUM_LAYERS']
+        fc_dim = config['FC_DIM']
 
         if archType == 'LSTM':
-            model = SharkAttentionLSTM(dat_size,
+            model = SharkLSTM(dat_size,
                               hidden_size, 
                               out_size, 
                               num_layers=num_layers,
@@ -234,9 +234,9 @@ def get_model(config):
                              fc_dim=fc_dim)
 
         model.cuda()
-        optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=.99, nesterov=True)
+        optimizer = torch.optim.SGD(model.parameters(), lr=0.1, momentum=.99, nesterov=False, weight_decay=1e-7)
         # optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-        sched = torch.optim.lr_scheduler.MultiStepLR(optimizer, [10000,20000], gamma=0.1)
+        sched = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.75)
 
     elif modelType == 'rcnn':
         if expDim == '1d':

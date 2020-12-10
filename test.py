@@ -22,6 +22,14 @@ from sklearn.metrics import confusion_matrix, classification_report
 from utils import *
 from datasets.SharkBehaviorDataset import SharkBehaviorDataset
 
+parser = argparse.ArgumentParser()
+
+parser.add_argument('--write',
+                    action='store_true',
+                    help='Write results to file')
+
+args = parser.parse_args()
+
 ########################### model params ###########################
 with open('./configs/config.yml', 'r') as stream:
     config = yaml.safe_load(stream)
@@ -45,8 +53,11 @@ test_X, test_Y = load_data(data_folder, 'test', testSplit=testSplit)
 
 cnn = (modelType == 'cnn') or (modelType == 'rcnn')
 
-if cnn and expDim == '2d':
-    test_X  = np.expand_dims(test_X, axis=1)
+if cnn: 
+    test_X = np.transpose(test_X, (0, 2, 1))
+    
+    if expDim == '2d':
+        test_X = np.expand_dims(test_X, axis=1)
 
 ########################### load up dataset ###########################
 
@@ -78,18 +89,18 @@ if modelType == 'cnn':
             model = Sharkception2d(1)
             
 elif modelType == 'rnn':
-    hidden_size = 128
+    hidden_size = config['HIDDEN_DIM']
     if expDim == '1d':
         dat_size = 1
     else:
         dat_size = 6
         
-    out_size = 4
-    num_layers = 2
-    fc_dim = 512
+    out_size = config['NUM_CLASSES']
+    num_layers = config['NUM_LAYERS']
+    fc_dim = config['FC_DIM']
 
     if archType == 'LSTM':
-        model = SharkAttentionLSTM(dat_size,
+        model = SharkLSTM(dat_size,
                           hidden_size, 
                           out_size, 
                           num_layers=num_layers,
@@ -114,9 +125,8 @@ model.cuda()
 
 print(folder_)
 state_dict = torch.load('./'+ folder_ + '/_acc.pth')
-# state_dict = torch.load('exp/'+ folder_ +'/_loss.pth')
-# state_dict = torch.load('exp/'+ folder_ +'/_last.pth')
-# state_dict = torch.load('exp/'+ folder_ +'/save_1000.pth') #0,200...
+# state_dict = torch.load('./'+ folder_ + '/_loss.pth')
+# state_dict = torch.load('./'+ folder_ + '/_last.pth')
 model.load_state_dict(state_dict)
 model.eval()
 
@@ -170,20 +180,21 @@ print(metrics.roc_auc_score(ys, probs1, multi_class='ovo', labels=[0,1,2,3]))
 
 ########################### write results file ###########################
 
-with open(os.path.join(results_folder, results_file), 'w+') as f:
-    f.write("Test accuracy\n")
-    f.write("----------------------------------\n")
-    f.write(str((ys == preds).sum() / ys.shape[0]))
-    f.write('\n\n')
-    f.write("Confusion matrix\n")
-    f.write("----------------------------------\n")
-    f.write(str(confusion_matrix(ys, preds, [0,1,2,3])))
-    f.write('\n\n')
-    f.write("Classification report\n")
-    f.write("----------------------------------\n")
-    f.write(str(classification_report(ys, preds, digits=4)))
-    f.write('\n\n')
-    f.write("AUC ROC\n")
-    f.write("----------------------------------\n")
-    f.write(str(metrics.roc_auc_score(ys, probs1, multi_class='ovo', labels=[0,1,2,3])))
+if args.write:
+    with open(os.path.join(results_folder, results_file), 'w+') as f:
+        f.write("Test accuracy\n")
+        f.write("----------------------------------\n")
+        f.write(str((ys == preds).sum() / ys.shape[0]))
+        f.write('\n\n')
+        f.write("Confusion matrix\n")
+        f.write("----------------------------------\n")
+        f.write(str(confusion_matrix(ys, preds, [0,1,2,3])))
+        f.write('\n\n')
+        f.write("Classification report\n")
+        f.write("----------------------------------\n")
+        f.write(str(classification_report(ys, preds, digits=4)))
+        f.write('\n\n')
+        f.write("AUC ROC\n")
+        f.write("----------------------------------\n")
+        f.write(str(metrics.roc_auc_score(ys, probs1, multi_class='ovo', labels=[0,1,2,3])))
     

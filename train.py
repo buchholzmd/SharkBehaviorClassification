@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
+from torchsummary import summary
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms, utils
@@ -50,18 +51,16 @@ print(data_folder)
 
 cnn = (modelType == 'cnn') or (modelType == 'rcnn')
 
-if cnn and expDim == '2d':
-    train_X = np.expand_dims(train_X, axis=1)
-    val_X   = np.expand_dims(val_X, axis=1)
+if cnn: 
+    train_X = np.transpose(train_X, (0, 2, 1))
+    val_X   = np.transpose(val_X, (0, 2, 1))
+    
+    if expDim == '2d':
+        train_X = np.expand_dims(train_X, axis=1)
+        val_X   = np.expand_dims(val_X, axis=1)
 
 ########################### load up dataset ###########################
 
-# print("train X")
-# print(train_X.shape)
-# print("train Y")
-# print(train_Y.shape)
-# print()
-# print()
 train_dataset = SharkBehaviorDataset(train_X, labels=train_Y, train=True)
 val_dataset   = SharkBehaviorDataset(val_X, labels=val_Y, train=True)
 
@@ -76,21 +75,23 @@ val_loader = torch.utils.data.DataLoader(dataset=val_dataset,
 model, optimizer, sched = get_model(config)
 criterion = nn.CrossEntropyLoss()
 
+# print(summary(model, (50,1)))
+
 ########################### train ###########################
 
-train(model, train_loader, val_loader, {}, sched, folder_)
+train(model, train_loader, val_loader, {}, optimizer, sched, folder_, rnn=(not cnn))
 
 ########################### disp loss/acc ###########################
 
-train_acc_series = pd.Series(mean_train_acc)
-val_acc_series = pd.Series(mean_val_acc)
-train_acc_series.plot(label="train")
-val_acc_series.plot(label="validation")
-plt.legend()
+# train_acc_series = pd.Series(mean_train_acc)
+# val_acc_series = pd.Series(mean_val_acc)
+# train_acc_series.plot(label="train")
+# val_acc_series.plot(label="validation")
+# plt.legend()
 
-train_acc_series = pd.Series(mean_train_losses)
-val_acc_series = pd.Series(mean_val_losses)
-train_acc_series.plot(label="train")
-val_acc_series.plot(label="validation")
-plt.legend()
+# train_acc_series = pd.Series(mean_train_losses)
+# val_acc_series = pd.Series(mean_val_losses)
+# train_acc_series.plot(label="train")
+# val_acc_series.plot(label="validation")
+# plt.legend()
  
