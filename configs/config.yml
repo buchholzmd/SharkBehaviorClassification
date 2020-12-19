@@ -1,5 +1,5 @@
-MODEL_TYPE: 'rnn' # 'rnn', 'cnn', 'rcnn'
-DATA_DIM: '1d' # '1d', '2d'
+MODEL_TYPE: 'rcnn' # 'rnn', 'cnn', 'rcnn'
+DATA_DIM: '2d' # '1d', '2d'
 WAVELET: False
 NUM_CLASSES: 4
 

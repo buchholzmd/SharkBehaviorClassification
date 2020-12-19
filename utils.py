@@ -5,11 +5,10 @@ import numpy as np
 import torch.nn as nn
 from torch.autograd import Variable
 
-from networks.rcnn import SharkRCNN2d
+from networks.rcnn import SharkRCNN
 from networks.rnn import SharkLSTM, SharkGRU
 from networks.attention_rnn import SharkAttentionLSTM
-from networks.cnn import SharkVGG1, SharkVGG2, Sharkception
-from networks.cnn2d import Shark2dVGG1, Shark2dVGG2, Sharkception2d
+from networks.cnn import SharkVGG, SharkVGG2d
 
 def accuracy(out, labels):
     _, pred = torch.max(out,1)
@@ -187,20 +186,12 @@ def get_model(config):
     
     if modelType == 'cnn':
         if expDim == '1d':
-            if archType == 'VGG1':
-                model = SharkVGG1(1)
-            elif archType == 'VGG2':
-                model = SharkVGG2(1)
-            elif archType == 'Inception':
-                model = Sharkception(1)
+            if archType == 'VGG':
+                model = SharkVGG(1)
 
         elif expDim == '2d':
             if archType == 'VGG1':
-                model = Shark2dVGG1(1)
-            elif archType == 'VGG2':
-                model = Shark2dVGG2(1)
-            elif archType == 'Inception':
-                model = Sharkception2d(1)
+                model = SharkVGG2d(1)
 
         model.cuda()
         optimizer = torch.optim.Adam(model.parameters(), lr=0.1, weight_decay=1e-7)#, momentum=.9, nesterov=True)
@@ -239,15 +230,11 @@ def get_model(config):
         sched = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.75)
 
     elif modelType == 'rcnn':
-        if expDim == '1d':
-            model = SharkRCNN(1, 4)
-
-        elif expDim == '2d':
-            model = SharkRCNN2d(1, 4)
+        model = SharkRCNN(3)
 
         model.cuda()
-        optimizer = torch.optim.Adam(model.parameters(), lr=0.0005, weight_decay=.0)
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.0001, weight_decay=.0)
         # optimizer = torch.optim.SGD(model.parameters(), lr=0.0001, momentum=.99, nesterov=True)
-        sched = torch.optim.lr_scheduler.MultiStepLR(optimizer, [10000], gamma=0.1)
+        sched = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.75)
 
     return model, optimizer, sched

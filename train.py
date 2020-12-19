@@ -51,13 +51,9 @@ print(data_folder)
 
 cnn = (modelType == 'cnn') or (modelType == 'rcnn')
 
-if cnn: 
-    train_X = np.transpose(train_X, (0, 2, 1))
-    val_X   = np.transpose(val_X, (0, 2, 1))
-    
-    if expDim == '2d':
-        train_X = np.expand_dims(train_X, axis=1)
-        val_X   = np.expand_dims(val_X, axis=1)
+if cnn and expDim == '2d':
+    train_X = np.expand_dims(train_X, axis=1)
+    val_X   = np.expand_dims(val_X, axis=1)
 
 ########################### load up dataset ###########################
 
@@ -75,7 +71,8 @@ val_loader = torch.utils.data.DataLoader(dataset=val_dataset,
 model, optimizer, sched = get_model(config)
 criterion = nn.CrossEntropyLoss()
 
-# print(summary(model, (50,1)))
+if modelType == 'rcnn':
+    print(summary(model, (1, 50, 6)))
 
 ########################### train ###########################
 

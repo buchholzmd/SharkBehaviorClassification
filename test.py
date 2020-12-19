@@ -53,11 +53,8 @@ test_X, test_Y = load_data(data_folder, 'test', testSplit=testSplit)
 
 cnn = (modelType == 'cnn') or (modelType == 'rcnn')
 
-if cnn: 
-    test_X = np.transpose(test_X, (0, 2, 1))
-    
-    if expDim == '2d':
-        test_X = np.expand_dims(test_X, axis=1)
+if cnn and expDim == '2d':
+    test_X = np.expand_dims(test_X, axis=1)
 
 ########################### load up dataset ###########################
 
@@ -114,12 +111,7 @@ elif modelType == 'rnn':
                          fc_dim=fc_dim)
         
 elif modelType == 'rcnn':
-    
-    if expDim == '1d':
-        model = SharkRCNN(1, 4)
-    
-    elif expDim == '2d':
-        model = SharkRCNN2d(1, 4)
+    model = SharkRCNN(3)
 
 model.cuda()
 
