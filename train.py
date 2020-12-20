@@ -71,7 +71,7 @@ val_loader = torch.utils.data.DataLoader(dataset=val_dataset,
 model, optimizer, sched = get_model(config)
 criterion = nn.CrossEntropyLoss()
 
-if modelType == 'rcnn':
+if cnn:
     print(summary(model, (1, 50, 6)))
 
 ########################### train ###########################

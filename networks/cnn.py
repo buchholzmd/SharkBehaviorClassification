@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 
-
 class Flatten(nn.Module):
     def forward(self, input):
         return input.view(input.size(0), -1)
@@ -80,17 +79,11 @@ class SharkVGG(nn.Module):
         
         x = self.fc(x)
         return x
-    
-
-
-def conv_layer(chanIn, chanOut, kernel_size = 3, padding=0):
-    return 
-
 
 class SharkVGG2d(nn.Module):
     def __init__(self, chn):
         super(SharkVGG2d, self).__init__()
-        chan = 32#8*2
+        chan = 32
         ks = [(3,2), (5,2), (7,1)]
         pad = [(1,1), (2,1), (3,0)]
         
