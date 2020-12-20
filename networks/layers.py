@@ -74,24 +74,24 @@ class RecurrentConvolutionalLayer(nn.Module):
         
         self.pad = False
         
-        self.assym_pad_left = False
-        self.assym_pad_top  = False
-        self.assym_pad      = False
+        self.asym_pad_left = False
+        self.asym_pad_top  = False
+        self.asym_pad      = False
         
         if type(ks) is tuple:
             self.pad = True
-            if ks[0] % 2:
-                self.assym_pad_left = True
+            if not ks[0] % 2:
+                self.asym_pad_left = True
                 self.padl = nn.ZeroPad2d((pad[0],0,0,0))
-                pad[0] = 0
+                pad = 0, pad[1]
                 
-            if ks[1] % 2:
-                self.assym_pad_top = True
-                self.padt = nn.ZeroPad2d((0,0,pad[1],0))
-                pad[1] = 0
+            if not ks[1] % 2:
+                self.asym_pad_top = True
+                self.padt = nn.ZeroPad2d((0,pad[1],0,0))
+                pad =  pad[0], 0
         elif ks % 2:
             self.pad = True
-            self.assym_pad = True
+            self.asym_pad = True
             if type(pad) is tuple:
                 self.padlt = nn.ZeroPad2d((pad[0],0,pad[1],0))
                 pad = (0,0)
@@ -108,32 +108,22 @@ class RecurrentConvolutionalLayer(nn.Module):
         self.time_steps = time_steps
         
     def forward(self, x):
-        print(x.shape)
-        
         if self.pad:
-            x = assymetric_padding(x)
+            x = self.asymetric_padding(x)
         x = self.conv1(x)
         
-        print(x.shape)
-        print()
         x_rec = x.clone()
-        print(x.shape)
-        print(x_rec.shape)
-        print()
         
         if self.pad:
-            x = assymetric_padding(x)
+            x = self.asymetric_padding(x)
         x = self.rcl1(x)
-        
-        print(x.shape)
-        print(x_rec.shape)
         
         x += x_rec
         x = self.lrn(x)
         
         for i in range(1, self.time_steps):
             if self.pad:
-                x = assymetric_padding(x)
+                x = self.asymetric_padding(x)
             x = self.rcl2(x)
 
             x += x_rec
@@ -141,12 +131,12 @@ class RecurrentConvolutionalLayer(nn.Module):
         
         return x
     
-    def assymetric_padding(self, x):
-        if self.assym_pad_left:
+    def asymetric_padding(self, x):
+        if self.asym_pad_left:
             x = self.padl(x)
-        elif self.assym_pad_top:
+        elif self.asym_pad_top:
             x = self.padt(x)
-        elif self.assym_pad:
+        elif self.asym_pad:
             x = self.padlt(x)
             
         return x

@@ -186,12 +186,10 @@ def get_model(config):
     
     if modelType == 'cnn':
         if expDim == '1d':
-            if archType == 'VGG':
-                model = SharkVGG(1)
+            model = SharkVGG(1)
 
         elif expDim == '2d':
-            if archType == 'VGG1':
-                model = SharkVGG2d(1)
+            model = SharkVGG2d(1)
 
         model.cuda()
         optimizer = torch.optim.Adam(model.parameters(), lr=0.1, weight_decay=1e-7)#, momentum=.9, nesterov=True)
@@ -233,8 +231,8 @@ def get_model(config):
         model = SharkRCNN(3)
 
         model.cuda()
-        optimizer = torch.optim.Adam(model.parameters(), lr=0.0001, weight_decay=.0)
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.)
         # optimizer = torch.optim.SGD(model.parameters(), lr=0.0001, momentum=.99, nesterov=True)
-        sched = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.75)
+        sched = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.65)
 
     return model, optimizer, sched
