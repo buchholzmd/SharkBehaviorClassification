@@ -40,6 +40,7 @@ archType   = config['ARCH_TYPE']
 testSplit  = config['TEST_SPLIT']
 modelType  = config['MODEL_TYPE']
 batch_size = config['BATCH_SIZE']
+test_path  = config['TEST_PATH']
 
 folder_, results_folder, results_file = get_exp_paths(config)
     
@@ -115,10 +116,9 @@ elif modelType == 'rcnn':
 
 model.cuda()
 
+
 print(folder_)
-state_dict = torch.load('./'+ folder_ + '/_acc.pth')
-# state_dict = torch.load('./'+ folder_ + '/_loss.pth')
-# state_dict = torch.load('./'+ folder_ + '/_last.pth')
+state_dict = torch.load(os.path.join(folder_,test_path))
 model.load_state_dict(state_dict)
 model.eval()
 
@@ -138,7 +138,7 @@ with torch.no_grad():
         labels = Variable(labels.cuda())
         
         outputs = model(sequences)
-        prob = nn.Softmax()(outputs).cpu().numpy()
+        prob = nn.Softmax(dim=1)(outputs).cpu().numpy()
         
         _, pred = torch.max(outputs,1)
         ys = np.concatenate([ys, labels.cpu().numpy()])

@@ -1,13 +1,20 @@
-MODEL_TYPE: 'cnn' # 'rnn', 'cnn', 'rcnn'
+# DATA
+DATA_PATH: './datasets/data/experiment_split' # full_split
 DATA_DIM: '2d' # '1d', '2d'
-WAVELET: False
 NUM_CLASSES: 4
+WAVELET: False
 
+# ARCHITECTURE
+MODEL_TYPE: 'cnn' # 'rnn', 'cnn', 'rcnn'
 ARCH_TYPE: 'VGG' # 'LSTM', 'GRU', 'VGG', Inception', 'RCNN'
 HIDDEN_DIM: 512
 FC_DIM: 1024
 NUM_LAYERS: 2
 ATTENTION: ''
 
-TEST_SPLIT: 'orig' # 'orig', '7000', '12000'
+# TRAINING
 BATCH_SIZE: 256
+
+# TESTING
+TEST_SPLIT: 'orig' # 'orig', '7000', '12000'
+TEST_PATH: '_last.pth' #/ _acc _loss _last

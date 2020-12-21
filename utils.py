@@ -192,10 +192,8 @@ def get_model(config):
             model = SharkVGG2d(1)
 
         model.cuda()
-        optimizer = torch.optim.Adam(model.parameters(), lr=0.1, weight_decay=1e-7)#, momentum=.9, nesterov=True)
-        # optimizer = torch.optim.SGD(model.parameters(), lr=0.0001, momentum=.99, nesterov=True)
-#         sched = torch.optim.lr_scheduler.MultiStepLR(optimizer, [10000], gamma=0.1)
-        sched = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.65)
+        optimizer = torch.optim.Adam(model.parameters(), lr=5e-2, weight_decay=1e-5)
+        sched = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.75)
 
     elif modelType == 'rnn':
         hidden_size = config['HIDDEN_DIM']

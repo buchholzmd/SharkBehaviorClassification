@@ -25,14 +25,14 @@ def dense(chanIn):
     return nn.Sequential(
         Flatten(),
         nn.Dropout(.25),
-#         nn.ReLU(),
+        nn.ReLU(),
         nn.Linear(chanIn, 1000),
         nn.ReLU(),
         nn.BatchNorm1d(1000),
         nn.Linear(1000,100),
         nn.ReLU(),
         nn.BatchNorm1d(100),
-#         nn.Dropout(.25),
+        nn.Dropout(.25),
         nn.Linear(100, 4)
     )
 
@@ -59,23 +59,19 @@ class SharkVGG(nn.Module):
         
         
     def forward(self, x):
-        # print('in', x.shape)
         x = self.conv11(x)
         x = self.conv12(x)
-        # print('first', x.shape)
         
         x = self.pool12(x)
         x = self.dp_1(x)
         x = self.conv13(x)
         x = self.conv14(x)
-        # print('second', x.shape)
         
         x = self.pool15(x)
         x = self.dp_2(x)
         
         x = self.conv16(x)
         x = self.conv17(x)
-        # print('thrid', x.shape)
         
         x = self.fc(x)
         return x
