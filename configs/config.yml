@@ -1,6 +1,10 @@
 # DATA
-DATA_PATH: './datasets/data/experiment_split' # full_split
+SPLIT: 'full' # experiment full
+DATA_PATH: './all_data'
+SPLIT_PATH: './datasets/data'
 DATA_DIM: '2d' # '1d', '2d'
+NUM_TRAIN: 10000
+NUM_VAL: 2000
 NUM_CLASSES: 4
 WAVELET: False
 
@@ -18,3 +22,4 @@ BATCH_SIZE: 256
 # TESTING
 TEST_SPLIT: 'orig' # 'orig', '7000', '12000'
 TEST_PATH: '_last.pth' #/ _acc _loss _last
+NUM_TEST: 4000

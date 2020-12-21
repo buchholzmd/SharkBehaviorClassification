@@ -28,45 +28,28 @@ with open('./configs/config.yml', 'r') as stream:
     config = yaml.safe_load(stream)
     
 # DATA
-data_path  = config['DATA_PATH']
 expDim     = config['DATA_DIM']
-WAVELET: False
-
-# ARCHITECTURE
-MODEL_TYPE: 'cnn' # 'rnn', 'cnn', 'rcnn'
-ARCH_TYPE: 'VGG' # 'LSTM', 'GRU', 'VGG', Inception', 'RCNN'
-HIDDEN_DIM: 512
-FC_DIM: 1024
-NUM_LAYERS: 2
-ATTENTION: ''
-
-# TRAINING
-BATCH_SIZE: 256
-
-# TESTING
-TEST_SPLIT: 'orig' # 'orig', '7000', '12000'
-TEST_PATH: '_last.pth' #/ _acc _loss _last
-
-
 wavelet    = config['WAVELET']
 archType   = config['ARCH_TYPE']
 testSplit  = config['TEST_SPLIT']
 modelType  = config['MODEL_TYPE']
 batch_size = config['BATCH_SIZE']
 
+paths_dict = get_exp_paths(config)
 
-folder_, results_folder, results_file = get_exp_paths(config)
+folder_ = paths_dict['folder']
+results_folder = paths_dict['results_dir']
+results_file = paths_dict['results_fn']
+split_path = paths_dict['split_path']
     
 ########################### save/load ###########################
 
-data_folder = os.path.join(data_path, expDim)
-
-train_X, train_Y = load_data(data_folder, 'train')
-val_X, val_Y = load_data(data_folder, 'val')
+train_X, train_Y = load_data(split_path, 'train')
+val_X, val_Y = load_data(split_path, 'val')
 
 ########################### print folder ###########################
 
-print(data_folder)
+print(split_path)
 
 ########################### expand dims ###########################
 

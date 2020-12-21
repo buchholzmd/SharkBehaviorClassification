@@ -2,11 +2,14 @@ import os
 import h5py
 import torch
 import numpy as np
+import pandas as pd
 import torch.nn as nn
 from torch.autograd import Variable
 
+from collections import Counter
 from networks.rcnn import SharkRCNN
 from networks.rnn import SharkLSTM, SharkGRU
+from sklearn.model_selection import train_test_split
 from networks.attention_rnn import SharkAttentionLSTM
 from networks.cnn import SharkVGG, SharkVGG2d
 
@@ -117,47 +120,46 @@ def train(model, train_loader, val_loader, parameters, optimizer, sched, path, r
     torch.save(model.state_dict(), './'+folder_+'/_last.pth')
 
 def get_exp_paths(config):
-    expDim    = config['DATA_DIM']
-    wavelet   = config['WAVELET']
-    archType  = config['ARCH_TYPE']
-    testSplit = config['TEST_SPLIT']
-    modelType = config['MODEL_TYPE']
-    attention = config['ATTENTION']
+    split       = config['SPLIT']
+    split_path  = config['SPLIT_PATH']
+    expDim      = config['DATA_DIM']
+    wavelet     = config['WAVELET']
+    archType    = config['ARCH_TYPE']
+    testSplit   = config['TEST_SPLIT']
+    modelType   = config['MODEL_TYPE']
+    attention   = config['ATTENTION']
+    
+    paths_dict = {}
 
-    folder_ = os.path.join('./models', attention + modelType, expDim, archType)
+    paths_dict['folder'] = os.path.join('./models', attention + modelType, expDim, archType)
 
-    results_folder = os.path.join('./results', testSplit)
+    paths_dict['results_dir'] = os.path.join('./results', testSplit)
 
     if wavelet:
-        results_file = 'wavelet_' + archType + '_' + expDim + '_' + testSplit + '.txt'
+        paths_dict['results_fn'] = 'wavelet_' + archType + '_' + expDim + '_' + testSplit + '.txt'
     else:
-        results_file = attention + archType + '_' + expDim + '_' + testSplit + '.txt'
+        paths_dict['results_fn'] = attention + archType + '_' + expDim + '_' + testSplit + '.txt'
 
-    if not os.path.exists(folder_):
-        os.makedirs(folder_)
+    if not os.path.exists(paths_dict['folder']):
+        os.makedirs(paths_dict['folder'])
     
-    print('Folder:' + str(folder_))
+    print('Folder:' + str(paths_dict['folder']))
 
-    if not os.path.exists(results_folder):
-        os.makedirs(results_folder)
+    if not os.path.exists(paths_dict['results_dir']):
+        os.makedirs(paths_dict['results_dir'])
 
-    print('Results Folder:' + str(results_folder))
-    print('Results File:' + str(results_file))
+    print('Results Folder:' + str(paths_dict['results_dir']))
+    print('Results File:' + str(paths_dict['results_fn']))
     
-    return folder_, results_folder, results_file
-
-def write(data, outfile):
-    '''
-        This function writes the pre-processed image data to a HDF5 file
-        Args:
-          data: numpy.array, image data as numpy array
-          outfile: string, path to write file to
-    '''
-    print("---------------------------------------")
-    print("Saving data")
-    print("---------------------------------------\n")
-    with h5py.File(outfile, "w") as f:
-        f.create_dataset("shark_data", data=data, dtype=data.dtype)
+    if not os.path.exists(split_path):
+        os.makedirs(split_path)
+        
+    split_path = os.path.join(split_path, split + '_split')
+    paths_dict['split_path'] = os.path.join(split_path, expDim)
+    
+    print('Data split Folder:' + str(paths_dict['split_path']))
+    
+    return paths_dict
 
 def load_data(infile, dataset, testSplit=''):
     '''
