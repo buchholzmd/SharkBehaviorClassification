@@ -2,24 +2,27 @@
 SPLIT: 'full' # experiment full
 DATA_PATH: './all_data'
 SPLIT_PATH: './datasets/data'
-DATA_DIM: '2d' # '1d', '2d'
-NUM_TRAIN: 10000
-NUM_VAL: 2000
+DATA_DIM: '1d' # '1d', '2d'
+NUM_TRAIN: 2000 # 2000
+NUM_VAL: 500 # 500
+SEQ_LEN: 50
 NUM_CLASSES: 4
-WAVELET: False
+WAVELET: '' # wavelet
 
 # ARCHITECTURE
-MODEL_TYPE: 'cnn' # 'rnn', 'cnn', 'rcnn'
-ARCH_TYPE: 'VGG' # 'LSTM', 'GRU', 'VGG', Inception', 'RCNN'
-HIDDEN_DIM: 512
-FC_DIM: 1024
-NUM_LAYERS: 2
-ATTENTION: ''
+MODEL_TYPE: 'svdkl' # 'rnn', 'cnn', 'rcnn' 'svdkl'
+ARCH_TYPE: 'RKL' # 'LSTM', 'GRU', 'VGG', 'RCNN', 'RKL'
+HIDDEN_DIM: 64 # 64
+ATTN_DIM: 64 # 64
+FC_DIM: 256
+NUM_LAYERS: 3 # 3 for 2d; 4 for 1d
+ATTENTION: 'attn' # attn
 
 # TRAINING
-BATCH_SIZE: 256
+BATCH_SIZE: 32 # 32 for RAKL; or 256
+NUM_EPOCHS: 200 # 500
 
 # TESTING
-TEST_SPLIT: 'orig' # 'orig', '7000', '12000'
-TEST_PATH: '_last.pth' #/ _acc _loss _last
-NUM_TEST: 4000
+TEST_SPLIT: 'orig' # 'orig', '1000'
+TEST_PATH: '_acc.pth' #/ _acc _loss _last
+NUM_TEST: 1000 # 1000

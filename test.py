@@ -34,120 +34,123 @@ args = parser.parse_args()
 with open('./configs/config.yml', 'r') as stream:
     config = yaml.safe_load(stream)
 
-expDim     = config['DATA_DIM']
-wavelet    = config['WAVELET']
-archType   = config['ARCH_TYPE']
-testSplit  = config['TEST_SPLIT']
-modelType  = config['MODEL_TYPE']
-batch_size = config['BATCH_SIZE']
-test_path  = config['TEST_PATH']
+expDim      = config['DATA_DIM']
+wavelet     = config['WAVELET']
+archType    = config['ARCH_TYPE']
+testSplit   = config['TEST_SPLIT']
+modelType   = config['MODEL_TYPE']
+batch_size  = config['BATCH_SIZE']
+test_path   = config['TEST_PATH']
+attn        = config['ATTENTION'] == 'attn'
+seq_len     = config['SEQ_LEN']
+num_classes = config['NUM_CLASSES']
 
-folder_, results_folder, results_file = get_exp_paths(config)
+paths_dict = get_exp_paths(config)
+
+folder_ = paths_dict['folder']
+results_folder = paths_dict['results_dir']
+results_file = paths_dict['results_fn']
+split_path = paths_dict['split_path']
     
 ########################### save/load ###########################
 
-data_folder = os.path.join('./datasets/data', expDim)
-
-test_X, test_Y = load_data(data_folder, 'test', testSplit=testSplit)
+test_X, test_Y = load_data(split_path, 'test', testSplit=testSplit)
 
 ########################### expand dims ###########################
 
 cnn = (modelType == 'cnn') or (modelType == 'rcnn')
 
-if cnn and expDim == '2d':
-    test_X = np.expand_dims(test_X, axis=1)
+if cnn :
+    if expDim == '2d':
+        test_X = np.expand_dims(test_X, axis=1)
+    else:
+        test_X = np.transpose(test_X, (0,2,1))
 
 ########################### load up dataset ###########################
 
 test_dataset  = SharkBehaviorDataset(test_X, labels=test_Y, train=True)
 
 test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
-                                         batch_size=batch_size,
-                                         shuffle=False)
+                                          batch_size=batch_size,
+                                          shuffle=False)
 
-model, _, _ = get_model(config)
+model, _, _ = get_model(config, test=True)
+
+if modelType == 'svdkl':
+    kernel_learning = True
+else:
+    kernel_learning = False
 
 ########################### test ###########################
 
-if modelType == 'cnn':
-    if expDim == '1d':
-        if archType == 'VGG1':
-            model = SharkVGG1(1)
-        elif archType == 'VGG2':
-            model = SharkVGG2(1)
-        elif archType == 'Inception':
-            model = Sharkception(1)
-    
-    elif expDim == '2d':
-        if archType == 'VGG1':
-            model = Shark2dVGG1(1)
-        elif archType == 'VGG2':
-            model = Shark2dVGG2(1)
-        elif archType == 'Inception':
-            model = Sharkception2d(1)
-            
-elif modelType == 'rnn':
-    hidden_size = config['HIDDEN_DIM']
-    if expDim == '1d':
-        dat_size = 1
-    else:
-        dat_size = 6
-        
-    out_size = config['NUM_CLASSES']
-    num_layers = config['NUM_LAYERS']
-    fc_dim = config['FC_DIM']
+model_path = os.path.join(folder_,test_path)
+print("Loading model from path: ", model_path)
 
-    if archType == 'LSTM':
-        model = SharkLSTM(dat_size,
-                          hidden_size, 
-                          out_size, 
-                          num_layers=num_layers,
-                          fc_dim=fc_dim)
+if kernel_learning:
+    likelihood = model['likelihood']
+    model = model['model']
 
-    elif archType == 'GRU':
-        model = SharkGRU(dat_size, 
-                         hidden_size, 
-                         out_size, 
-                         num_layers=num_layers,
-                         fc_dim=fc_dim)
-        
-elif modelType == 'rcnn':
-    model = SharkRCNN(3)
+    # model = model.cpu()
+    # likelihood = likelihood.cpu()
 
-model.cuda()
+    print(folder_)
+    state_dict = torch.load(model_path)
+    # state_dict = torch.load(model_path, map_location=torch.device('cpu'))
+    model.load_state_dict(state_dict['model'])
+    likelihood.load_state_dict(state_dict['likelihood'])
 
+    model.eval()
+    likelihood.eval()
 
-print(folder_)
-state_dict = torch.load(os.path.join(folder_,test_path))
-model.load_state_dict(state_dict)
-model.eval()
+else:
+    print(folder_)
+    state_dict = torch.load(model_path)
+    model.load_state_dict(state_dict)
+    model.eval()
 
 ########################### inference ###########################
 
 ys = []
 preds = []
-probs = np.empty((test_X.shape[0],4))
+probs = []
 
-with torch.no_grad():
-    model.eval
-    
+with torch.no_grad(), gpytorch.settings.num_likelihood_samples(32) if kernel_learning else suppress():
     count = 0
     for sequences, labels in test_loader:
         labels = labels.squeeze()
-        sequences = Variable(sequences.cuda())
-        labels = Variable(labels.cuda())
         
         outputs = model(sequences)
-        prob = nn.Softmax(dim=1)(outputs).cpu().numpy()
+
+        if kernel_learning and attn:
+            outputs, attn_weights = model(sequences)
+        else:
+            outputs = model(sequences)
+
+        if kernel_learning:
+            batch_size = sequences.size(0)
+            # This gives us 32 samples from the predictive distribution
+            # Take the mean over all samples
+            outputs = likelihood(outputs).probs.mean(0)
+
+            if attn:
+                outputs = outputs.reshape((batch_size, seq_len, num_classes))
+                prob = torch.bmm(attn_weights, outputs).squeeze().cpu()
+
+            else:
+                prob = outputs.cpu()
+
+        else:
+            prob = torch.softmax(outputs, dim=1).cpu()
         
-        _, pred = torch.max(outputs,1)
-        ys = np.concatenate([ys, labels.cpu().numpy()])
-        preds = np.concatenate([preds, pred.cpu().numpy()])
-        
-        probs = np.vstack([probs, prob])
+        pred = prob.argmax(-1)
+
+        ys = np.concatenate([ys, labels.numpy()])
+        preds = np.concatenate([preds, pred.numpy()])
+        probs.append(prob.numpy())
+
+probs = np.concatenate(probs)
         
 ########################### acc ###########################
-
 # Accuracy --8000
 print('Accuracy: ', (ys == preds).sum() / ys.shape[0])     
 
@@ -163,12 +166,9 @@ print(classification_report(ys, preds, digits=4))
 ########################### ROC AUC ###########################
 
 #print(probs)
-probs1 = probs[test_X.shape[0]:]
+print(probs.shape)
 
-print(test_X.shape[0])
-print(probs1.shape)
-
-print(metrics.roc_auc_score(ys, probs1, multi_class='ovo', labels=[0,1,2,3]))
+print(metrics.roc_auc_score(ys, probs, multi_class='ovo', labels=[0,1,2,3]))
 
 ########################### write results file ###########################
 
@@ -188,5 +188,5 @@ if args.write:
         f.write('\n\n')
         f.write("AUC ROC\n")
         f.write("----------------------------------\n")
-        f.write(str(metrics.roc_auc_score(ys, probs1, multi_class='ovo', labels=[0,1,2,3])))
+        f.write(str(metrics.roc_auc_score(ys, probs, multi_class='ovo', labels=[0,1,2,3])))
     

@@ -59,7 +59,7 @@ def split_data(dfs, config):
         data = pd.concat(dfs)
         
         df_dict['train'], df_dict['test'] = train_test_split(data,
-                                                             test_size=0.2, 
+                                                             test_size=0.25, 
                                                              random_state=33)
 
         df_dict['train'], df_dict['val'] = train_test_split(df_dict['train'],
@@ -103,7 +103,7 @@ def group_times(df):
     
     return df  
 
-def sample_sequences(df, features, num_samples=None, seq_len=50, dims=1, train=True):
+def sample_sequences(df, features, num_samples=None, seq_len=50, dims=1, test=False):
     X = []
     Y = []
     
@@ -113,13 +113,12 @@ def sample_sequences(df, features, num_samples=None, seq_len=50, dims=1, train=T
         print(str(idx) + ": " + label)
         
         class_df = df.loc[df['Label'] == label]
-        if train:
+        groups = class_df['Group'].unique()
+        if not test:
             X_class = np.zeros((num_samples, seq_len, dims), dtype=np.float32)
             Y_class = np.full((num_samples, 1), idx, dtype=np.int64)
             
             for i in range(num_samples):
-                groups = class_df['Group'].unique()
-                
                 chunk_idx = groups[np.random.randint(len(groups))]
                 
                 data = class_df.loc[class_df['Group'] == chunk_idx][features].to_numpy()
@@ -134,16 +133,25 @@ def sample_sequences(df, features, num_samples=None, seq_len=50, dims=1, train=T
                 X_class[i] = data[rand:rand+seq_len]
                 
         else:
-            data = df.loc[df['Label'] == label][features].to_numpy()
-            
-            num_samples = len(data)//50
-            print(num_samples)
-            
-            X_class = np.zeros((num_samples, seq_len, dims), dtype=np.float32)
-            Y_class = np.full((num_samples, 1), idx, dtype=np.int64)
-            
-            for i in range(num_samples):
-                X_class[i] = data[seq_len*i:seq_len*(i+1)]
+            X_class = []
+            Y_class = []
+            for group in groups:
+                data = class_df.loc[class_df['Group'] == group][features].to_numpy()
+                
+                num_samples = len(data)//50
+                
+                X_group = np.zeros((num_samples, seq_len, dims), dtype=np.float32)
+                Y_group = np.full((num_samples, 1), idx, dtype=np.int64)
+                
+                for i in range(num_samples):
+                    X_group[i] = data[seq_len*i:seq_len*(i+1)]
+
+                X_class.append(X_group)
+                Y_class.append(Y_group)
+
+            X_class, Y_class = np.concatenate(X_class), np.concatenate(Y_class)
+
+            print(label + " -- num test points: " + str(Y_class.shape[0]))
                     
         X.append(X_class)
         Y.append(Y_class)

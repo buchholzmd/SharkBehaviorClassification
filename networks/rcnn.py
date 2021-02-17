@@ -32,7 +32,6 @@ class SharkRCNN(nn.Module):
         
         self.fc = Dense([512, 256, 64, 4])
         
-        
     def forward(self, x):
         x = self.conv(x)
         x = self.pool1(x)

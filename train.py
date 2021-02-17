@@ -2,11 +2,11 @@ import os
 import yaml
 import pywt
 import torch
+import gpytorch
 import argparse
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import matplotlib.pyplot as plt
 
 import torch.nn as nn
 import torch.optim as optim
@@ -55,9 +55,13 @@ print(split_path)
 
 cnn = (modelType == 'cnn') or (modelType == 'rcnn')
 
-if cnn and expDim == '2d':
-    train_X = np.expand_dims(train_X, axis=1)
-    val_X   = np.expand_dims(val_X, axis=1)
+if cnn:
+    if expDim == '2d':
+        train_X = np.expand_dims(train_X, axis=1)
+        val_X   = np.expand_dims(val_X, axis=1)
+    else:
+        train_X = np.transpose(train_X, (0,2,1))
+        val_X   = np.transpose(val_X, (0,2,1))
 
 ########################### load up dataset ###########################
 
@@ -73,26 +77,28 @@ val_loader = torch.utils.data.DataLoader(dataset=val_dataset,
                                         shuffle=True)
 
 model, optimizer, sched = get_model(config)
-criterion = nn.CrossEntropyLoss()
 
-if cnn:
-    print(summary(model, (1, 50, 6)))
+if modelType == 'svdkl':
+    criterion = gpytorch.mlls.PredictiveLogLikelihood(model['likelihood'], model['model'].gp_layer, num_data=len(train_loader.dataset))
 
-########################### train ###########################
+    kernel_learning = True
 
-train(model, train_loader, val_loader, {}, optimizer, sched, folder_, rnn=(not cnn))
+else:
+    criterion = nn.CrossEntropyLoss()
 
-########################### disp loss/acc ###########################
+    if cnn:
+        if expDim == '2d':
+            print(summary(model, (1, 50, 6)))
+        else:
+            print(summary(model, (1, 50)))
 
-# train_acc_series = pd.Series(mean_train_acc)
-# val_acc_series = pd.Series(mean_val_acc)
-# train_acc_series.plot(label="train")
-# val_acc_series.plot(label="validation")
-# plt.legend()
+    kernel_learning = False
 
-# train_acc_series = pd.Series(mean_train_losses)
-# val_acc_series = pd.Series(mean_val_losses)
-# train_acc_series.plot(label="train")
-# val_acc_series.plot(label="validation")
-# plt.legend()
+test_path   = config['TEST_PATH']
+model_path = os.path.join(folder_,test_path)
+print("Loading model from path: ", model_path)
+
+train(config, model, criterion, train_loader, val_loader, {}, optimizer, sched, folder_, rnn=(not cnn), kernel_learning=kernel_learning, model_path=model_path)
+
+
  
